@@ -25,6 +25,6 @@ pub fn main() !void {
 
         try elf.write(code, outfile.writer());
     } else {
-        std.debug.print("missing argument inputfile", .{});
+        std.debug.print("missing argument inputfile\n", .{});
     }
 }
