@@ -127,3 +127,86 @@ const Scanner = struct {
         return null;
     }
 };
+
+const expectEqual = std.testing.expectEqual;
+const testAllocator = std.testing.allocator;
+
+test "empty scanner" {
+    var s = Scanner.init("");
+    try expectEqual(null, s.next());
+    try expectEqual(null, s.peek());
+}
+
+test "peek will not consume tokens" {
+    var s = Scanner.init("+");
+    try expectEqual(.add, s.peek());
+    try expectEqual(.add, s.peek());
+    try expectEqual(.add, s.peek());
+    try expectEqual(0, s.index);
+}
+
+test "peek will consume illegal tokens" {
+    var s = Scanner.init("hello+");
+    try expectEqual(.add, s.peek());
+    try expectEqual(5, s.index);
+}
+
+test "next and peek recognizes legal tokens" {
+    var s = Scanner.init("+-<>.,[]");
+    try expectEqual(.add, s.peek());
+    try expectEqual(.add, s.next());
+
+    try expectEqual(.sub, s.peek());
+    try expectEqual(.sub, s.next());
+
+    try expectEqual(.shift_left, s.peek());
+    try expectEqual(.shift_left, s.next());
+
+    try expectEqual(.shift_right, s.peek());
+    try expectEqual(.shift_right, s.next());
+
+    try expectEqual(.write, s.peek());
+    try expectEqual(.write, s.next());
+
+    try expectEqual(.read, s.peek());
+    try expectEqual(.read, s.next());
+
+    try expectEqual(.jump_if_zero, s.peek());
+    try expectEqual(.jump_if_zero, s.next());
+
+    try expectEqual(.jump_if_not_zero, s.peek());
+    try expectEqual(.jump_if_not_zero, s.next());
+
+    try expectEqual(null, s.peek());
+    try expectEqual(null, s.next());
+}
+
+test "buildIr empty" {
+    const ir = try buildIr(testAllocator, "");
+    defer testAllocator.free(ir);
+
+    try expectEqual(0, ir.len);
+}
+
+test "buildIr handle sequences" {
+    const ir = try buildIr(testAllocator, "+++ --- <<< >>> ... ,,,");
+    defer testAllocator.free(ir);
+
+    try expectEqual(Ir{ .add = 3 }, ir[0]);
+    try expectEqual(Ir{ .sub = 3 }, ir[1]);
+    try expectEqual(Ir{ .shift_left = 3 }, ir[2]);
+    try expectEqual(Ir{ .shift_right = 3 }, ir[3]);
+    try expectEqual(Ir{ .write = 3 }, ir[4]);
+    try expectEqual(Ir{ .read = 3 }, ir[5]);
+}
+
+test "buildIr jump" {
+    const ir = try buildIr(testAllocator, "[[+-]+-]+");
+    defer testAllocator.free(ir);
+
+    try expectEqual(Ir{ .jump_if_zero = 8 }, ir[0]);
+    try expectEqual(Ir{ .jump_if_not_zero = 1 }, ir[7]);
+
+    try expectEqual(Ir{ .jump_if_zero = 5 }, ir[1]);
+    try expectEqual(Ir{ .jump_if_not_zero = 2 }, ir[4]);
+}
