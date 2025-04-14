@@ -31,7 +31,7 @@ pub fn compile(allocator: Allocator, ir: []const Ir) CompilerError!MachineCode {
             .sub => |imm8| {
                 try subRsiImm8(@as(u8, @intCast(imm8)), writer);
             },
-            .out => |N| {
+            .write => |N| {
                 try movRegImm64(1, .rax, writer);
                 try movRegImm64(1, .rdi, writer);
                 try movRegImm64(1, .rdx, writer);
@@ -40,6 +40,7 @@ pub fn compile(allocator: Allocator, ir: []const Ir) CompilerError!MachineCode {
                     try syscall(writer);
                 }
             },
+            else => unreachable,
         }
     }
 
